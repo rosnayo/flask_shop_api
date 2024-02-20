@@ -4,7 +4,17 @@ from .. import shop
 from ..models import Producto
 from ..schemas import ProductoSchema
 
+from decouple import config
+
 api = Api(shop)
+
+import cloudinary
+import cloudinary.uploader         
+cloudinary.config( 
+  cloud_name = config('CLOUDINARY_CLOUD_NAME'), 
+  api_key = config('CLOUDINARY_API_KEY'), 
+  api_secret = config('CLOUDINARY_API_SECRET') 
+)
 
 class ProductoResource(Resource):
 
@@ -88,6 +98,37 @@ class ProductoDetailResource(Resource):
 
         return context
 
+class ProductoImageUpload(Resource):
+    
+    def post(self):
+        if 'imagen' not in request.files:
+            context = {
+                'status':False,
+                'message':'no se encontro ninguna imagen'
+            }
+            return context,400
+
+        producto_imagen = request.files['imagen']
+        try:
+            upload_result = cloudinary.uploader.upload(producto_imagen)
+            print(upload_result)
+            url_imagen = upload_result['secure_url']
+
+            context = {
+                'status':True,
+                'content':url_imagen
+            }
+
+            return context,200
+
+        except Exception as e:
+            context = {
+                'status':False,
+                'message':str(e)
+            }
+
+            return context,500
 
 api.add_resource(ProductoResource,'/producto')
 api.add_resource(ProductoDetailResource,'/producto/<id>')
+api.add_resource(ProductoImageUpload,'/producto/image/upload')
